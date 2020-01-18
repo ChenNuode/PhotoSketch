@@ -9,18 +9,19 @@ import sqlite3 as sql
 from passlib.hash import sha256_crypt
 from datetime import datetime
 
+currentfilepath = os.path.dirname(os.path.abspath(__file__))
 
 ## DB part -> 2 tables
 # first table for user data
 # second table to map username to gamefile + game's metadata
-with sql.connect('ProtoSketch.db') as conn:
+with sql.connect(os.path.join(currentfilepath,'ProtoSketch.db')) as conn:
 	conn.execute('CREATE TABLE IF NOT EXISTS users(username text UNIQUE, password text);')
 	conn.execute('CREATE TABLE IF NOT EXISTS games(user_creator text, filename text, about text, start_date date, thumbnail_link text);')
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "static"
-OUTPUT_FOLDER = "saved_games"
+UPLOAD_FOLDER = os.path.join(currentfilepath,"static/")
+OUTPUT_FOLDER = os.path.join(currentfilepath,"saved_games/")
 ALLOWED_EXTENSIONS = set(["jpg", "jpeg", "png", "gif"])
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
@@ -43,7 +44,7 @@ def index():
 
 @app.route("/upload_image", methods = ['POST'])
 def submit_image():
-	target=os.path.join(UPLOAD_FOLDER,'uploads')
+	target=os.path.join(UPLOAD_FOLDER,'uploads/')
 	if not os.path.isdir(target):
 		os.mkdir(target)
 
@@ -67,7 +68,7 @@ def submit_image():
 
 	startdate = datetime.today().strftime('%Y-%m-%d-%H:%M')
 
-	with sql.connect('ProtoSketch.db') as conn:
+	with sql.connect(os.path.join(currentfilepath,'ProtoSketch.db')) as conn:
 		cur = conn.cursor()
 		cur.execute('INSERT INTO games VALUES (?,?,NULL,?,?);', ("Nuode_admin", "/".join([OUTPUT_FOLDER,generated_jsons_filename]), startdate, destination))
 		conn.commit()
@@ -88,14 +89,14 @@ def get_game(game_id):
 
 @app.route("/test_games", methods = ['GET'])
 def see_games():
-	with sql.connect('ProtoSketch.db') as conn:
+	with sql.connect(os.path.join(currentfilepath,'ProtoSketch.db')) as conn:
 		cur = conn.cursor()
 		results = cur.execute("SELECT * FROM games").fetchall()
 	return str(results)
 
 @app.route("/test_users", methods = ['GET'])
 def see_users():
-	with sql.connect('ProtoSketch.db') as conn:
+	with sql.connect(os.path.join(currentfilepath,'ProtoSketch.db')) as conn:
 		cur = conn.cursor()
 		results = cur.execute("SELECT * FROM users").fetchall()
 	return str(results)
