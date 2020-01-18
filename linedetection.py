@@ -1,12 +1,12 @@
-import cv2
 import json
 import numpy as np
 import cv2
 from json_tricks import dumps
+from scipy.spatial import distance as dist
 
 # Load an color image in grayscale
 
-def imgtojson(filepath,display = False, imagewidth=800,imageheight=570):
+def imgtojson(filepath,save_status = False,output_filename = False,display = False, imagewidth=800,imageheight=570):
 	
 	img = cv2.imread(filepath)
 
@@ -18,6 +18,8 @@ def imgtojson(filepath,display = False, imagewidth=800,imageheight=570):
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 	
 	countourdata = {}
+	countourdata["Teleport_BBs"] = []
+	countourdata["Coin_BBs"] = []
 
 	colours = [
 		([88, 186, 88], [108, 246, 148],"blue"), 
@@ -46,7 +48,6 @@ def imgtojson(filepath,display = False, imagewidth=800,imageheight=570):
 		opening = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
 		#cv2.imshow("mask",mask)
-		cv2.imshow("opening",opening)
 
 		#opening2 = cv2.GaussianBlur(opening,(5, 5),0)
 		output = cv2.bitwise_and(img, img, mask = opening)
@@ -69,15 +70,46 @@ def imgtojson(filepath,display = False, imagewidth=800,imageheight=570):
 				newcontours.append(c)
 			index += 1
 
+		
+		if mycolour == "yellow" or mycolour == "purple":
+			portals = []
+
+			for c in newcontours:
+				smallx, smally, smallw, smallh = cv2.boundingRect(c)
+				small_centroid = (smallx + smallw//2, smally + smallh//2)
+				temp_status = False
+				if len(portals) == 0:
+					portals.append([[small_centroid], c])
+				else:
+					for item in portals:
+						for pt in item[0]:
+							if dist.euclidean(small_centroid, pt) < 30:
+								temp_status = True
+								break
+					if temp_status == True:
+						item[0].append(small_centroid)
+						item[1].concat(c, axis=None)
+					else:
+						portals.append([[small_centroid], c])
+
+		
+			for item in portals:
+				stuff = cv2.boundingRect(item[1]) #starts from top right of box
+				if mycolour == "purple":
+					countourdata["Teleport_BBs"].append(stuff)
+				elif mycolour == "yellow":
+					countourdata["Coin_BBs"].append(stuff)
+
 		#show the contours
 		if display == True:
-			for i in range(len(newcontours)):
-				cv2.drawContours(smallimage, newcontours, i, (0,255,0), 1)
-				cv2.imshow("hello",smallimage)
-				cv2.waitKey(0)
-		
-		countourdata[mycolour] = newcontours
+			cv2.drawContours(smallimage, newcontours, -1, (0,255,0), 1)
+			#for item in portals:
+				#cv2.drawContours(smallimage, item[1], -1, (255,0,0), 2)
 
+			cv2.imshow("display",smallimage)
+			cv2.waitKey(0)
+
+		countourdata[mycolour] = newcontours
 
 	blankmap = np.zeros((imageheight,imagewidth), dtype=int)
 
@@ -108,12 +140,14 @@ def imgtojson(filepath,display = False, imagewidth=800,imageheight=570):
 	#print(blankmap)
 	#np.savetxt("result.txt", blankmap,delimiter=',')
 
-	finaldata = dumps({'mapdata':blankmap}, primitives=True)
+	finaljson = dumps({'mapdata':blankmap,"Coin_BBs":countourdata["Coin_BBs"],"Teleport_BBs":countourdata["Teleport_BBs"]}, primitives=True)
 	
-	with open('1.txt', 'w') as outfile:
-		json.dump(finaldata, outfile)
+	if save_status == True:
+		with open(output_filename, 'w') as outfile:
+			json.dump(finaljson, outfile)
 
+	return finaljson
 
 if __name__ == "__main__":
-	imgtojson("drawing.jpg")
+	imgtojson("drawing.jpg",True,"result.txt")
 
