@@ -6,8 +6,8 @@ from scipy.spatial import distance as dist
 
 # Load an color image in grayscale
 
-def imgtojson(filepath,save_status = False,output_filename = False,display = False, imagewidth=800,imageheight=570):
-	
+def imgtojson(filepath,save_status = False,output_filename = False, game_id_given=False,display = False, imagewidth=800,imageheight=570):
+
 	img = cv2.imread(filepath)
 
 	#display = False
@@ -16,29 +16,33 @@ def imgtojson(filepath,save_status = False,output_filename = False,display = Fal
 
 	img = cv2.resize(img, (imagewidth,imageheight) , interpolation = cv2.INTER_AREA)
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-	
+
 	countourdata = {}
 	countourdata["Teleport_BBs"] = []
 	countourdata["Coin_BBs"] = []
 
 	colours = [
-		([88, 186, 88], [108, 246, 148],"blue"), 
-		([114,50,50],[134,255,255],"purple"),
-		([0,50,50],[20,255,255],"red"), 
-		([65,50,50],[85,255,255],"green"),
-		([25,100,100],[35,255,255],"yellow"),
-		([0,0,0],[30,70,110],"black"),
+		([88, 50, 50], [108, 255, 255],"blue"),
+		#([114,50,50],[180,255,255],"purple"),
+		([112,50,50],[132,255,255],"purple"),
+		([0,60,60],[14,255,255],"red"),
+		([50,30,30],[80,255,255],"green"),
+		([20,100,50],[35,255,255],"yellow"),
+		#([10,0,0],[35,70,110],"black"),
+		([0,0,30],[35,70,110],"black"),
 	]
 
 
+	print(hsv[493][77])
+
 	# loop over the colours
 	for (lower, upper,mycolour) in colours:
-		
+
 		# create NumPy arrays from the boundaries
 		lower = np.array(lower, dtype = "uint8")
 		upper = np.array(upper, dtype = "uint8")
 		smallimage = img.copy()
-		
+
 		# find the colors within the specified boundaries and apply
 		# the mask
 		mask = cv2.inRange(hsv, lower, upper)
@@ -47,14 +51,13 @@ def imgtojson(filepath,save_status = False,output_filename = False,display = Fal
 		kernel = np.ones((5,5),np.uint8)
 		opening = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
-		#cv2.imshow("mask",mask)
-
 		#opening2 = cv2.GaussianBlur(opening,(5, 5),0)
 		output = cv2.bitwise_and(img, img, mask = opening)
-		
+
 		# show the images
-		#cv2.imshow("images", np.hstack([img, output]))
-		#cv2.waitKey(0)
+		if display == True:
+			cv2.imshow("mask- opening",opening)
+			cv2.imshow("images", np.hstack([img, output]))
 
 		contours, hierarchy = cv2.findContours(opening, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
@@ -65,12 +68,24 @@ def imgtojson(filepath,save_status = False,output_filename = False,display = Fal
 		for c in contours:
 			x, y, w, h = cv2.boundingRect(c)
 			parent_status = hierarchy[0][index][3]
-			
+
 			if ( w * h <= 0.95 * imageheight * imagewidth and w * h > 5) and parent_status == -1:
 				newcontours.append(c)
 			index += 1
 
-		
+		#show the contours
+		if display == True:
+			#for i in range(len(newcontours)):
+				#cv2.drawContours(smallimage, newcontours, i, (0,255,0), 1)
+			cv2.drawContours(smallimage, newcontours, -1, (0,255,0), 2)
+			#cv2.waitKey(0)
+			#for item in portals:
+				#cv2.drawContours(smallimage, item[1], -1, (255,0,0), 2)
+
+			cv2.imshow("display",smallimage)
+			cv2.waitKey(0)
+
+		temp_index = 0
 		if mycolour == "yellow" or mycolour == "purple":
 			portals = []
 
@@ -78,6 +93,9 @@ def imgtojson(filepath,save_status = False,output_filename = False,display = Fal
 				smallx, smally, smallw, smallh = cv2.boundingRect(c)
 				small_centroid = (smallx + smallw//2, smally + smallh//2)
 				temp_status = False
+
+				#cv2.drawContours(smallimage, newcontours, temp_index, (0,255,0), 1)
+
 				if len(portals) == 0:
 					portals.append([[small_centroid], c])
 				else:
@@ -85,14 +103,27 @@ def imgtojson(filepath,save_status = False,output_filename = False,display = Fal
 						for pt in item[0]:
 							if dist.euclidean(small_centroid, pt) < 30:
 								temp_status = True
-								break
-					if temp_status == True:
-						item[0].append(small_centroid)
-						item[1].concat(c, axis=None)
-					else:
+								
+						if temp_status == True:
+							item[0].append(small_centroid)
+							#print(len(portals))
+							#print(item)
+							#print("\n\n")
+							#print("item1",item[1])
+							#print("c",c)
+							#print("\n\n")
+							#item[1].concatenate(c, axis=None)
+							item[1] = np.concatenate([item[1],c])
+							break
+
+					if temp_status == False:
 						portals.append([[small_centroid], c])
 
-		
+				#temp_index += 1
+				#cv2.imshow("display",smallimage)
+				#cv2.waitKey(0)
+
+
 			for item in portals:
 				stuff = cv2.boundingRect(item[1]) #starts from top right of box
 				if mycolour == "purple":
@@ -100,14 +131,7 @@ def imgtojson(filepath,save_status = False,output_filename = False,display = Fal
 				elif mycolour == "yellow":
 					countourdata["Coin_BBs"].append(stuff)
 
-		#show the contours
-		if display == True:
-			cv2.drawContours(smallimage, newcontours, -1, (0,255,0), 1)
-			#for item in portals:
-				#cv2.drawContours(smallimage, item[1], -1, (255,0,0), 2)
-
-			cv2.imshow("display",smallimage)
-			cv2.waitKey(0)
+		
 
 		countourdata[mycolour] = newcontours
 
@@ -140,8 +164,8 @@ def imgtojson(filepath,save_status = False,output_filename = False,display = Fal
 	#print(blankmap)
 	#np.savetxt("result.txt", blankmap,delimiter=',')
 
-	finaljson = dumps({'mapdata':blankmap,"Coin_BBs":countourdata["Coin_BBs"],"Teleport_BBs":countourdata["Teleport_BBs"]}, primitives=True)
-	
+	finaljson = dumps({'mapdata':blankmap,"Coin_BBs":countourdata["Coin_BBs"],"Teleport_BBs":countourdata["Teleport_BBs"],"link_to_file":"https://photosketch.pythonanywhere.com/game/" + game_id_given}, primitives=True)
+
 	if save_status == True:
 		with open(output_filename, 'w') as outfile:
 			json.dump(finaljson, outfile)
@@ -149,5 +173,4 @@ def imgtojson(filepath,save_status = False,output_filename = False,display = Fal
 	return finaljson
 
 if __name__ == "__main__":
-	imgtojson("drawing.jpg",True,"result.txt")
-
+	imgtojson("drawing2.jpeg",True,"result.txt","result",True)
