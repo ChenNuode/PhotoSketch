@@ -23,9 +23,9 @@ def imgtojson(filepath,save_status = False,output_filename = False, game_id_give
 
 	colours = [
 		([88, 50, 50], [108, 255, 255],"blue"),
-		#([114,50,50],[180,255,255],"purple"),
+		([114,50,50],[180,255,255],"purple"),
 		([112,50,50],[132,255,255],"purple"),
-		([0,60,60],[14,255,255],"red"),
+		([167,60,60],[187,255,255],"red"),
 		([50,30,30],[80,255,255],"green"),
 		([20,100,50],[35,255,255],"yellow"),
 		#([10,0,0],[35,70,110],"black"),
@@ -33,7 +33,7 @@ def imgtojson(filepath,save_status = False,output_filename = False, game_id_give
 	]
 
 
-	print(hsv[493][77])
+	print(hsv[205][242])
 
 	# loop over the colours
 	for (lower, upper,mycolour) in colours:
