@@ -9,6 +9,7 @@ import sqlite3 as sql
 from passlib.hash import sha256_crypt
 from datetime import datetime
 
+
 currentfilepath = os.path.dirname(os.path.abspath(__file__))
 
 ## DB part -> 2 tables
@@ -16,12 +17,12 @@ currentfilepath = os.path.dirname(os.path.abspath(__file__))
 # second table to map username to gamefile + game's metadata
 with sql.connect(os.path.join(currentfilepath,'ProtoSketch.db')) as conn:
 	conn.execute('CREATE TABLE IF NOT EXISTS users(username text UNIQUE, password text);')
-	conn.execute('CREATE TABLE IF NOT EXISTS games(user_creator text, filename text, about text, start_date date, thumbnail_link text);')
+	conn.execute('CREATE TABLE IF NOT EXISTS games(user_creator text, filename text, about text, start_date text, thumbnail_link text);')
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = os.path.join(currentfilepath,"static/")
-OUTPUT_FOLDER = os.path.join(currentfilepath,"saved_games/")
+UPLOAD_FOLDER = os.path.join(currentfilepath,"static")
+OUTPUT_FOLDER = os.path.join(currentfilepath,"saved_games")
 ALLOWED_EXTENSIONS = set(["jpg", "jpeg", "png", "gif"])
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
@@ -44,7 +45,7 @@ def index():
 
 @app.route("/upload_image", methods = ['POST'])
 def submit_image():
-	target=os.path.join(UPLOAD_FOLDER,'uploads/')
+	target=os.path.join(UPLOAD_FOLDER,'uploads')
 	if not os.path.isdir(target):
 		os.mkdir(target)
 
@@ -64,9 +65,9 @@ def submit_image():
 	new_file_num = str(len(fileslist) + 1)
 	generated_jsons_filename = new_file_num + ".txt"
 
-	json_output = linedetection.imgtojson(destination,True, "/".join([OUTPUT_FOLDER, generated_jsons_filename]) )
+	json_output = linedetection.imgtojson(destination,True, "/".join([OUTPUT_FOLDER, generated_jsons_filename]), new_file_num)
 
-	startdate = datetime.today().strftime('%Y-%m-%d-%H:%M')
+	startdate = str(datetime.now().strftime('%Y-%m-%d-%H:%M'))
 
 	with sql.connect(os.path.join(currentfilepath,'ProtoSketch.db')) as conn:
 		cur = conn.cursor()
@@ -100,6 +101,32 @@ def see_users():
 		cur = conn.cursor()
 		results = cur.execute("SELECT * FROM users").fetchall()
 	return str(results)
+
+@app.route("/user_games/<user_id>", methods = ['GET'])
+def user_games(user_id):
+	#data = GamesTable.query.filter_by(user_creator = user_id).all()
+
+	with sql.connect(os.path.join(currentfilepath,'ProtoSketch.db')) as conn:
+		cur = conn.cursor()
+		data = cur.execute("SELECT * FROM games;").fetchall()
+
+	displaylist = []
+	for game in data:
+		mystr = game[4].replace('/Users/nuode/Desktop/KurtisTech/',"")
+		mystr = "http://127.0.0.1:5000/" + mystr
+		
+		displaylist.append([game[0],"https://photosketch.pythonanywhere.com/game/" + str(game.id),game.about,str(game.start_date),mystr])
+
+	print(data)
+
+	"""
+	for game in data:
+		mystr = game.thumbnail_link.replace('/home/PhotoSketch/mysite/',"")
+		mystr = "https://photosketch.pythonanywhere.com/" + mystr
+
+		displaylist.append([game.id,game.user_creator,"https://photosketch.pythonanywhere.com/game/" + str(game.id),game.about,str(game.start_date),mystr])
+	"""
+	return json.dumps(displaylist)
 
 
 if __name__ == "__main__":

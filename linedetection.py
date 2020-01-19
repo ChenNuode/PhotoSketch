@@ -164,7 +164,7 @@ def imgtojson(filepath,save_status = False,output_filename = False, game_id_give
 	#print(blankmap)
 	#np.savetxt("result.txt", blankmap,delimiter=',')
 
-	finaljson = dumps({'mapdata':blankmap,"Coin_BBs":countourdata["Coin_BBs"],"Teleport_BBs":countourdata["Teleport_BBs"],"link_to_file":"https://photosketch.pythonanywhere.com/game/" + game_id_given}, primitives=True)
+	finaljson = dumps({'mapdata':blankmap,"Coin_BBs":countourdata["Coin_BBs"],"Teleport_BBs":countourdata["Teleport_BBs"],"link_to_file":"http://127.0.0.1:5000/game/" + game_id_given}, primitives=True)
 
 	if save_status == True:
 		with open(output_filename, 'w') as outfile:
