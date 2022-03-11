@@ -3,6 +3,5 @@ Bridging the gap between creatives and game development. PhotoSketch is an easy-
 
 https://devpost.com/software/photosketch
 
-Developed at Hack & Roll 2020
-By Me and Muhammad Fathy Rashad (@mfrashad)
+Developed at Hack & Roll 2020 by me and Muhammad Fathy Rashad (@mfrashad)<br>
 Won “Best Open Source Project on GitHub” at Major League Hacking’s Local Hack Day:SHARE 2020
